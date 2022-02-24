@@ -24,7 +24,7 @@ module.exports = {
   getSingleUser(req, res) {
     User.findOne({ _id: req.params.userId })
       .select('-__v')
-      .lean()
+      .populate('friends')
       .then(async (user) =>
         !user
           ? res.status(404).json({ message: 'No user with that ID' })
@@ -71,10 +71,10 @@ module.exports = {
   // Add an assignment to a student
   addFriend(req, res) {
     console.log('You are adding a friend');
-    console.log(req.body);
+    console.log(req.params.userId);
     User.findOneAndUpdate(
-      { _id: req.params.friendId },
-      { $addToSet: { friends: req.body } },
+      { _id: req.params.userId },
+      { $addToSet: { friends: req.params.friendId } },
       { runValidators: true, new: true }
     )
       .then((user) =>
@@ -94,9 +94,22 @@ module.exports = {
       { runValidators: true, new: true }
     )
       .then((user) =>
-          ? res
+          !user ? res
               .status(404)
               .json({ message: 'No user found with that ID :(' })
+          : res.json(user)
+      )
+      .catch((err) => res.status(500).json(err));
+  },
+  updateUser(req, res) {
+    User.findOneAndUpdate(
+      { _id: req.params.userId },
+      { $set: req.body },
+      { runValidators: true, new: true }
+    )
+      .then((user) =>
+        !user
+          ? res.status(404).json({ message: 'No user with this id!' })
           : res.json(user)
       )
       .catch((err) => res.status(500).json(err));
