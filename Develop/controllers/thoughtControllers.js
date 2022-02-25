@@ -1,3 +1,4 @@
+const { response } = require('express');
 const { Thoughts, User } = require('../models');
 
 module.exports = {
@@ -21,24 +22,33 @@ module.exports = {
   // Create a course
   createThought(req, res) {
     Thoughts.create(req.body)
-      .then((thought) => res.json(thought))
+      .then((thought) => {
+        return User.findOneAndUpdate(
+          {username: req.body.username}, 
+          {$addToSet: {thoughts: thought._id}},
+          {new: true}
+        )
+      })
+      .then((user) =>
+      !user
+      ? res.status(404).json({message: "No user exists with this id"})
+      : res.json("thought created"))
       .catch((err) => {
         console.log(err);
         return res.status(500).json(err);
       });
   },
-  // Delete a course
+  // Delete a thought
   deleteThought(req, res) {
     Thoughts.findOneAndDelete({ _id: req.params.thoughtId })
       .then((thought) =>
         !thought
           ? res.status(404).json({ message: 'No thought with that ID' })
-          : User.deleteMany({ _id: { $in: thought.user } })
-      )
-      .then(() => res.json({ message: 'Thought deleted!' }))
-      .catch((err) => res.status(500).json(err));
+          : res.json(thought))
+          .catch((err) => res.status(500).json(err))
+
   },
-  // Update a course
+  // Update a thought
   updateThought(req, res) {
     Thoughts.findOneAndUpdate(
       { _id: req.params.thoughtId },
